@@ -1,0 +1,4 @@
+{
+  "tests/integration/renderer/test_multi_output.py": true,
+  "tests/unit/test_app_runners.py::test_process_server_smoke": true
+}
