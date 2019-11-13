@@ -1,9 +1,10 @@
+from functools import partial
 import abc
 import inspect
 import sys
 from future.utils import with_metaclass
 
-from .._utils import patch_collections_abc
+from dash._utils import patch_collections_abc
 
 MutableSequence = patch_collections_abc("MutableSequence")
 
@@ -80,21 +81,30 @@ class Component(with_metaclass(ComponentMeta, object)):
 
     def __init__(self, **kwargs):
         # pylint: disable=super-init-not-called
+        # del self._valid_wildcard_attributes
+        # del self._prop_names
+        _dynamic_props = []
+        try:
+            _prop_names = list(self._prop_names)
+        except:
+            _prop_names = []
+
+        self._valid_wildcard_attributes = ['data-', 'aria-']
+
         for k, v in list(kwargs.items()):
             # pylint: disable=no-member
-            k_in_propnames = k in self._prop_names
-            k_in_wildcards = any(
-                [k.startswith(w) for w in self._valid_wildcard_attributes]
-            )
-            if not k_in_propnames and not k_in_wildcards:
-                raise TypeError(
-                    "Unexpected keyword argument `{}`".format(k)
-                    + "\nAllowed arguments: {}".format(
-                        # pylint: disable=no-member
-                        ", ".join(sorted(self._prop_names))
-                    )
-                )
+            k = k.replace("_", "-")
+            is_serializable = not callable(v)
+            if is_serializable:
+                if k not in _prop_names:
+                    _prop_names.append(k)
+            else:
+                _dynamic_props.append(k)
+                v = partial(v, self=self)
+
             setattr(self, k, v)
+        self._dynamic_props = tuple(_dynamic_props)
+        self._prop_names = tuple(_prop_names)
 
     def to_plotly_json(self):
         # Add normal properties
@@ -196,6 +206,7 @@ class Component(with_metaclass(ComponentMeta, object)):
     # - __iter__
     # - __len__
 
+
     def __getitem__(self, id):  # pylint: disable=redefined-builtin
         """Recursively find the element with the given ID through the tree of
         children."""
@@ -285,14 +296,8 @@ class Component(with_metaclass(ComponentMeta, object)):
         # pylint: disable=no-member
         props_with_values = [
             c for c in self._prop_names if getattr(self, c, None) is not None
-        ] + [
-            c
-            for c in self.__dict__
-            if any(
-                c.startswith(wc_attr)
-                for wc_attr in self._valid_wildcard_attributes
-            )
         ]
+
         if any(p != "children" for p in props_with_values):
             props_string = ", ".join(
                 "{prop}={value}".format(prop=p, value=repr(getattr(self, p)))
@@ -303,6 +308,50 @@ class Component(with_metaclass(ComponentMeta, object)):
         return "{type}({props_string})".format(
             type=self._type, props_string=props_string
         )
+    def __getattr__(self, item):
+        try:
+            obj = object().__getattribute__(item)
+            if item in self.__dict__['_dynamic_props']:
+                obj = obj()
+        except Exception as e:
+            k = item.replace("_", '-')
+            alt_k = item.replace("-", "_")
+            if k in self.__dict__['_prop_names']:
+                try:
+                    obj = self.__dict__[k]
+                except KeyError:
+                    raise AttributeError
+            elif alt_k in self.__dict__['_prop_names']:
+                try:
+                    obj = self.__dict__[alt_k]
+                except KeyError:
+                    raise AttributeError
+            elif k in self.__dict__['_dynamic_props']:
+                try:
+                    obj = self.__dict__[k]()
+                except KeyError:
+                    raise AttributeError
+            elif alt_k in self.__dict__['_dynamic_props']:
+                try:
+                    obj = self.__dict__[alt_k]()
+                except KeyError:
+                    raise AttributeError
+            elif item in self.__dict__:
+                obj = self.__dict__[item]
+            else:
+                raise AttributeError
+
+                # print(f"[Component.__setattr__]  {e.__class__.__name__} :: {e}")
+                # print(self.__dict__)
+        # if item in self.__dict__['_dynamic_props']:
+        #     obj = obj(self)
+        if callable(obj) and item in self.__dict__['_dynamic_props']:
+            obj = obj()
+        return obj
+    def __hasattr__(self, item):
+        return self.__getattr__(item) is not None
+
+
 
 
 def _explicitize_args(func):
@@ -331,3 +380,14 @@ def _explicitize_args(func):
         )
         wrapper.__signature__ = new_sig
     return wrapper
+if __name__ == '__main__':
+    import dash_core_components as dcc
+    foo = dcc.Input(id="foo", **{"aria-footest": "bar"})
+    try:
+        footest = foo.aria_footest
+    except Exception as e:
+        print(f"{e.__class__.__name__}: {e}")
+        # breakpoint()
+    print(f"foo: {foo}")
+    print(f"foo.aria_footest: {foo.aria_footest}")
+    print(f"foo.aria-footest: {getattr(foo, 'aria-footest')}")

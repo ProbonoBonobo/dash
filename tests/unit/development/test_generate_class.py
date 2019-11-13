@@ -98,6 +98,8 @@ def test_repr_with_wildcards(component_class):
     data_first = "Table(id='1', data-one='one', aria-two='two')"
     aria_first = "Table(id='1', aria-two='two', data-one='one')"
     repr_string = repr(c)
+    print(c)
+    print(repr(c))
 
     assert repr_string == data_first or repr_string == aria_first
 
@@ -113,11 +115,13 @@ def test_no_events(component_class):
 
 
 def test_required_props(component_written_class):
+    """What's the point of this test? I fail to see why components should be unable to set props that
+      aren't explicitly defined by their authors, it makes it almost impossible to have distributed state."""
     with pytest.raises(Exception):
         component_written_class()
     component_written_class(id="test")
-    with pytest.raises(Exception):
-        component_written_class(id="test", lahlah="test")
+    # My proposed fix: DON'T raise an exception when instantiated with arbitrary props
+    assert(hasattr(component_written_class(id="test", lahlah="test"), 'lahlah'))
     with pytest.raises(Exception):
         component_written_class(children="test")
 

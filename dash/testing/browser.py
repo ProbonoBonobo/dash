@@ -410,7 +410,7 @@ class Browser(DashPageMixin):
             )
             if self._remote
             else webdriver.Chrome(
-                options=options, desired_capabilities=capabilities
+                chrome_options=options, desired_capabilities=capabilities
             )
         )
 
@@ -457,7 +457,7 @@ class Browser(DashPageMixin):
             )
             if self._remote
             else webdriver.Firefox(
-                firefox_profile=fp, options=options, capabilities=capabilities
+                firefox_profile=fp, firefox_options=options, capabilities=capabilities
             )
         )
 
