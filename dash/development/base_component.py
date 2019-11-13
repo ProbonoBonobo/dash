@@ -350,6 +350,14 @@ class Component(with_metaclass(ComponentMeta, object)):
         return obj
     def __hasattr__(self, item):
         return self.__getattr__(item) is not None
+    def __setattr__(self, item, val):
+        try:
+            if any(item.startswith(prefix) for prefix in self.__dict__['available_wildcards']):
+                super().__setattr__(item.replace("_", "-"), val)
+                return
+        except:
+            pass
+        super().__setattr__(item, val)
 
 
 
