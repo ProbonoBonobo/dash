@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/dash.iml" filepath="$PROJECT_DIR$/.idea/dash.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../tokamak/.idea/tokamak.iml" filepath="$PROJECT_DIR$/../tokamak/.idea/tokamak.iml" />
     </modules>
   </component>
 </project>

@@ -79,5 +79,5 @@ Classifier: Topic :: Scientific/Engineering :: Visualization
 Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
 Classifier: Topic :: Software Development :: Widget Sets
 Description-Content-Type: text/markdown
-Provides-Extra: testing
 Provides-Extra: dev
+Provides-Extra: testing
